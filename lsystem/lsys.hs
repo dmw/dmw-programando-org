@@ -2,6 +2,8 @@
 module Main (main) where
 
 
+import qualified Data.List.Utils as L
+import qualified Data.Map as M
 import Data.Maybe ()
 import System.Environment
 import Text.ParserCombinators.Parsec
@@ -25,29 +27,49 @@ data LSLSysSeq = LSRotateLeft
                  | LSMoveBackT
                  | LSMoveBack
                  | LSSubSeq Char
-                   deriving (Eq, Show)
+                   deriving (Eq)
 
 
 data LSLSysComp = LSLSysComp {
-  c_saxi          :: Char
-  , c_sseq        :: [LSLSysSeq]
+  cSaxi          :: Char
+  , cSseq        :: [LSLSysSeq]
   } deriving (Eq, Show)
 
 
 data LSysCompSet = LSysCompSet {
-  l_lar           :: LSLarArg
-  , l_ang         :: LSAngArg
-  , l_axi         :: LSAxiArg
-  , l_seqi        :: [LSLSysComp]
-  , l_iter        :: Integer
+  lLar           :: LSLarArg
+  , lAng         :: LSAngArg
+  , lAxi         :: LSAxiArg
+  , lSeqI        :: [LSLSysComp]
+  , lIter        :: Integer
   } deriving (Eq, Show)
 
 
+instance Show LSLSysSeq where
+  show a = case a of
+                LSRotateLeft     -> " - "
+                LSRotateRight    -> " + "
+                LSMoveForwardT   -> " F "
+                LSMoveForward    -> " f "
+                LSMoveBackT      -> " B "
+                LSMoveBack       -> " b "
+                LSSubSeq n       -> " :" ++ [n] ++ " "
+
+
+readAxiArg :: LSAxiArg -> Char
+readAxiArg (LSAxiArg n) = n
+
+
+readAngArg :: LSAngArg -> Double
+readAngArg (LSAngArg n) = n
+
+
+readLarArg :: LSLarArg -> Double
+readLarArg (LSLarArg n) = n
+
 
 parEol :: Parser String
-parEol = do
-  i <- many $ oneOf ['\n', '\r']
-  return $ i
+parEol = many $ oneOf "\r\n"
 
 
 parLsLar :: Parser LSLarArg
@@ -72,21 +94,21 @@ parLsAxi :: Parser LSAxiArg
 parLsAxi = do
   _ <- string "axi"
   _ <- space
-  x <- oneOf $ ['A'..'Z'] ++ ['a'..'z']
+  x <- oneOf $ ['A' .. 'Z'] ++ ['a' .. 'z']
   _ <- parEol
   return $ LSAxiArg (x :: Char)
 
 
 parLsSysSeq :: Parser LSLSysSeq
 parLsSysSeq = do
-  i <- oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['+', '-']
+  i <- oneOf $ ['A' .. 'Z'] ++ ['a' .. 'z'] ++ "+-"
   case i of
-       '+' -> return $ LSRotateRight
-       '-' -> return $ LSRotateLeft
-       'f' -> return $ LSMoveForward
-       'F' -> return $ LSMoveForwardT
-       'b' -> return $ LSMoveBack
-       'B' -> return $ LSMoveBackT
+       '+' -> return LSRotateRight
+       '-' -> return LSRotateLeft
+       'f' -> return LSMoveForward
+       'F' -> return LSMoveForwardT
+       'b' -> return LSMoveBack
+       'B' -> return LSMoveBackT
        _   -> return $ LSSubSeq i
 
 
@@ -97,8 +119,8 @@ parLSysComp = do
   s <- many parLsSysSeq
   _ <- parEol
   return LSLSysComp {
-    c_saxi = i
-    , c_sseq = s
+    cSaxi = i
+    , cSseq = s
     }
 
 
@@ -108,7 +130,7 @@ parLsIterComp = do
   _ <- space
   i <- parseIntegral
   _ <- parEol
-  return $ (i :: Integer)
+  return (i :: Integer)
 
 
 parLSysCompSet :: Parser LSysCompSet
@@ -120,28 +142,72 @@ parLSysCompSet = do
   s <- many parLSysComp
   r <- parLsIterComp
   _ <- parEol
-  return $ LSysCompSet {
-    l_lar = l
-    , l_ang = a
-    , l_axi = x
-    , l_seqi = s
-    , l_iter = r
+  return LSysCompSet {
+    lLar = l
+    , lAng = a
+    , lAxi = x
+    , lSeqI = s
+    , lIter = r
   }
 
 
 parseLSysFile :: String -> Either ParseError LSysCompSet
-parseLSysFile s = parse parLSysCompSet "[Error]" s
+parseLSysFile = parse parLSysCompSet "[Error]"
 
 
-parseFile :: String -> IO ()
-parseFile s = case (parseLSysFile s) of
-                   Left err -> putStrLn $ show err
-                   Right pr -> putStrLn $ show pr
+findRootLSSeq :: LSysCompSet -> Maybe LSLSysComp
+findRootLSSeq ls = let
+  x = lSeqI ls
+  y = readAxiArg $ lAxi ls
+  runSeq (r : rs) = if cSaxi r == y
+                       then Just r
+                    else runSeq rs
+  runSeq _ = Nothing
+  in runSeq x
+
+
+makeLSMaps :: LSysCompSet -> M.Map Char [LSLSysSeq]
+makeLSMaps ls = let
+  mp = M.empty
+  runSeqs (r : rs) m = let
+    ks = cSaxi r
+    lv = cSseq r
+    nm = M.insert ks lv m
+    in runSeqs rs nm
+  runSeqs [] m = m
+  lxs = lSeqI ls
+  in runSeqs lxs mp
+
+
+isSubSeq :: LSLSysSeq -> Bool
+isSubSeq (LSSubSeq n) = True
+isSubSeq _ = False
+
+
+hasSubSeq :: [LSLSysSeq] -> Bool
+hasSubSeq xs = length (filter isSubSeq xs) > 0
+
+
+buildIter :: LSysCompSet
+             -> [LSLSysSeq]
+buildIter ls = let
+  mp = makeLSMaps ls
+  ra = readAxiArg $ lAxi ls
+  it = fromIntegral $ lIter ls
+  mkFinSeq cn (x : xs) am = case x of
+    (LSSubSeq n) -> mkFinSeq cn xs $ am ++ (mp M.! n)
+    _            -> mkFinSeq cn xs $ am ++ [x]
+  mkFinSeq cn [] am = if hasSubSeq am && cn < it
+                         then mkFinSeq (cn + 1) am []
+                      else am
+  in mkFinSeq 0 (mp M.! ra) []
 
 
 main :: IO ()
 main = do
   [f] <- getArgs
   prg <- readFile f
-  parseFile prg
+  case parseLSysFile prg of
+    Left err -> print err
+    Right pr -> print $ buildIter pr
 
