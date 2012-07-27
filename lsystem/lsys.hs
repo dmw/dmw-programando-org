@@ -203,6 +203,7 @@ buildIter ls = let
   in mkFinSeq 0 (mp M.! ra) []
 
 
+-- print iter should change for OpenGL IO ()
 main :: IO ()
 main = do
   [f] <- getArgs
