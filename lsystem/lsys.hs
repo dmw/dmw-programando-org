@@ -2,10 +2,22 @@
 module Main (main) where
 
 
+import Graphics.Rendering.OpenGL
+import Graphics.UI.GLUT
+
 import qualified Data.List.Utils as L
 import qualified Data.Map as M
+
+import Data.Function
+import Data.List
 import Data.Maybe ()
+import Data.Ord
+import Data.String.Utils
+
 import System.Environment
+import System.IO
+import System.Posix.Temp
+
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Numbers
 import Text.Printf ()
@@ -78,7 +90,7 @@ parLsLar = do
   _ <- space
   x <- parseFloat
   _ <- parEol
-  return $ LSLarArg (x :: Double)
+  return $ LSLarArg x
 
 
 parLsAng :: Parser LSAngArg
@@ -87,7 +99,7 @@ parLsAng = do
   _ <- space
   x <- parseFloat
   _ <- parEol
-  return $ LSAngArg (x :: Double)
+  return $ LSAngArg x
 
 
 parLsAxi :: Parser LSAxiArg
@@ -184,6 +196,11 @@ isSubSeq (LSSubSeq n) = True
 isSubSeq _ = False
 
 
+notSubSeq :: LSLSysSeq -> Bool
+notSubSeq (LSSubSeq n) = False
+notSubSeq _ = True
+
+
 hasSubSeq :: [LSLSysSeq] -> Bool
 hasSubSeq xs = length (filter isSubSeq xs) > 0
 
@@ -203,6 +220,39 @@ buildIter ls = let
   in mkFinSeq 0 (mp M.! ra) []
 
 
+cleanSubSeq :: [LSLSysSeq] -> [LSLSysSeq]
+cleanSubSeq = filter notSubSeq
+
+
+oglDraw :: LSysCompSet -> [LSLSysSeq] -> IO ()
+oglDraw ss ls = let
+  oglSDraw (x : xs) (ppx, ppy) dr = let
+    gppx = ppx :: GLfloat
+    gppy = ppy :: GLfloat
+    (np, ndr) = case x of
+                     LSRotateLeft   -> ((0.0, 0.0), False)
+                     LSRotateRight  -> ((0.0, 0.0), False)
+                     LSMoveForwardT -> ((0.0, 0.0), False)
+                     LSMoveForward  -> ((0.0, 0.0), False)
+                     LSMoveBackT    -> ((0.0, 0.0), False)
+                     LSMoveBack     -> ((0.0, 0.0), False)
+    in oglSDraw xs np ndr
+  oglSDraw [] (ppx, ppy) dr = putStrLn "Done!"
+  in oglSDraw ls (0.0, 0.0) False
+
+
+mainGlSub :: LSysCompSet -> String -> IO ()
+mainGlSub pr f = do
+  (progname, _) <- getArgsAndInitialize
+  loadIdentity
+  initialWindowSize $= Size 540 400
+  createWindow $ "L-System " ++ f
+  matrixMode $= Projection
+  polygonMode $= (Line, Line)
+  displayCallback $= oglDraw pr (cleanSubSeq $ buildIter pr)
+  mainLoop
+
+
 -- print iter should change for OpenGL IO ()
 main :: IO ()
 main = do
@@ -210,5 +260,6 @@ main = do
   prg <- readFile f
   case parseLSysFile prg of
     Left err -> print err
-    Right pr -> print $ buildIter pr
+    Right pr -> mainGlSub pr f
+
 
