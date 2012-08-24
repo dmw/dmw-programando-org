@@ -2,6 +2,7 @@
 module Main (main) where
 
 
+
 import Graphics.X11.Turtle
 
 import Control.Monad
@@ -24,6 +25,7 @@ import System.Random
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Numbers
 import Text.Printf ()
+
 
 
 data LSLarArg = LSLarArg Double deriving (Eq, Show)
