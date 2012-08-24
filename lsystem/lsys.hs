@@ -2,8 +2,10 @@
 module Main (main) where
 
 
-import Graphics.Rendering.OpenGL
-import Graphics.UI.GLUT
+import Graphics.X11.Turtle
+
+import Control.Monad
+import Control.Concurrent
 
 import qualified Data.List.Utils as L
 import qualified Data.Map as M
@@ -17,6 +19,7 @@ import Data.String.Utils
 import System.Environment
 import System.IO
 import System.Posix.Temp
+import System.Random
 
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Numbers
@@ -224,33 +227,43 @@ cleanSubSeq :: [LSLSysSeq] -> [LSLSysSeq]
 cleanSubSeq = filter notSubSeq
 
 
-oglDraw :: LSysCompSet -> [LSLSysSeq] -> IO ()
-oglDraw ss ls = let
-  oglSDraw (x : xs) (ppx, ppy) dr = let
-    gppx = ppx :: GLfloat
-    gppy = ppy :: GLfloat
-    (np, ndr) = case x of
-                     LSRotateLeft   -> ((0.0, 0.0), False)
-                     LSRotateRight  -> ((0.0, 0.0), False)
-                     LSMoveForwardT -> ((0.0, 0.0), False)
-                     LSMoveForward  -> ((0.0, 0.0), False)
-                     LSMoveBackT    -> ((0.0, 0.0), False)
-                     LSMoveBack     -> ((0.0, 0.0), False)
-    in oglSDraw xs np ndr
-  oglSDraw [] (ppx, ppy) dr = putStrLn "Done!"
-  in oglSDraw ls (0.0, 0.0) False
+oglDraw :: Turtle -> LSysCompSet -> [LSLSysSeq] -> IO ()
+oglDraw t ss ls = let
+  oglSDraw (x : xs) = case x of
+    LSRotateLeft   -> (left t $ readAngArg $ lAng ss)
+                      >> oglSDraw xs
+    LSRotateRight  -> (right t $ readAngArg $ lAng ss)
+                      >> oglSDraw xs
+    LSMoveForwardT -> pendown t
+                      >> (forward t $ readLarArg $ lLar ss)
+                      >> penup t
+                      >> oglSDraw xs
+    LSMoveForward  -> penup t
+                      >> (forward t $ readLarArg $ lLar ss)
+                      >> oglSDraw xs
+    LSMoveBackT    -> pendown t
+                      >> (backward t $ readLarArg $ lLar ss)
+                      >> penup t
+                      >> oglSDraw xs
+    LSMoveBack     -> penup t
+                      >> (backward t $ readLarArg $ lLar ss)
+                      >> oglSDraw xs
+    _              -> oglSDraw xs
+  oglSDraw [] = putStrLn "Done!"
+  in do
+     penup t
+     shape t "turtle"
+     shapesize t 2 2
+     oglSDraw ls
 
 
 mainGlSub :: LSysCompSet -> String -> IO ()
 mainGlSub pr f = do
-  (progname, _) <- getArgsAndInitialize
-  loadIdentity
-  initialWindowSize $= Size 540 400
-  createWindow $ "L-System " ++ f
-  matrixMode $= Projection
-  polygonMode $= (Line, Line)
-  displayCallback $= oglDraw pr (cleanSubSeq $ buildIter pr)
-  mainLoop
+  f <- openField
+  t <- newTurtle f
+  forkIO $ oglDraw t pr (cleanSubSeq $ buildIter pr)
+  threadDelay 5000000
+  closeField f
 
 
 -- print iter should change for OpenGL IO ()
@@ -260,6 +273,6 @@ main = do
   prg <- readFile f
   case parseLSysFile prg of
     Left err -> print err
-    Right pr -> mainGlSub pr f
+    Right pr -> putStrLn (show pr) >> mainGlSub pr f
 
 
