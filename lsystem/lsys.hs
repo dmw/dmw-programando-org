@@ -64,12 +64,12 @@ data LSysCompSet = LSysCompSet {
 
 instance Show LSLSysSeq where
   show a = case a of
-                LSRotateLeft     -> " - "
-                LSRotateRight    -> " + "
-                LSMoveForwardT   -> " F "
-                LSMoveForward    -> " f "
-                LSMoveBackT      -> " B "
-                LSMoveBack       -> " b "
+                LSRotateLeft     -> " Izq "
+                LSRotateRight    -> " Der "
+                LSMoveForwardT   -> " AvaT "
+                LSMoveForward    -> " Ava "
+                LSMoveBackT      -> " RetT "
+                LSMoveBack       -> " Ret "
                 LSSubSeq n       -> " :" ++ [n] ++ " "
 
 
@@ -120,8 +120,8 @@ parLsSysSeq :: Parser LSLSysSeq
 parLsSysSeq = do
   i <- oneOf $ ['A' .. 'Z'] ++ ['a' .. 'z'] ++ "+-"
   case i of
-       '+' -> return LSRotateRight
-       '-' -> return LSRotateLeft
+       '-' -> return LSRotateRight
+       '+' -> return LSRotateLeft
        'f' -> return LSMoveForward
        'F' -> return LSMoveForwardT
        'b' -> return LSMoveBack
@@ -214,12 +214,13 @@ buildIter :: LSysCompSet
              -> [LSLSysSeq]
 buildIter ls = let
   mp = makeLSMaps ls
+  ms = lSeqI ls
   ra = readAxiArg $ lAxi ls
   it = fromIntegral $ lIter ls
   mkFinSeq cn (x : xs) am = case x of
     (LSSubSeq n) -> mkFinSeq cn xs $ am ++ (mp M.! n)
     _            -> mkFinSeq cn xs $ am ++ [x]
-  mkFinSeq cn [] am = if hasSubSeq am && cn < it
+  mkFinSeq cn [] am = if cn < it
                          then mkFinSeq (cn + 1) am []
                       else am
   in mkFinSeq 0 (mp M.! ra) []
@@ -233,28 +234,40 @@ oglDraw :: Turtle -> LSysCompSet -> [LSLSysSeq] -> IO ()
 oglDraw t ss ls = let
   oglSDraw (x : xs) = case x of
     LSRotateLeft   -> (left t $ readAngArg $ lAng ss)
+                      >> flush t
+                      >> sleep t 10
                       >> oglSDraw xs
     LSRotateRight  -> (right t $ readAngArg $ lAng ss)
+                      >> flush t
+                      >> sleep t 10
                       >> oglSDraw xs
     LSMoveForwardT -> pendown t
                       >> (forward t $ readLarArg $ lLar ss)
                       >> penup t
+                      >> flush t
+                      >> sleep t 10
                       >> oglSDraw xs
     LSMoveForward  -> penup t
                       >> (forward t $ readLarArg $ lLar ss)
+                      >> flush t
+                      >> sleep t 10
                       >> oglSDraw xs
     LSMoveBackT    -> pendown t
                       >> (backward t $ readLarArg $ lLar ss)
                       >> penup t
+                      >> flush t
+                      >> sleep t 10
                       >> oglSDraw xs
     LSMoveBack     -> penup t
                       >> (backward t $ readLarArg $ lLar ss)
+                      >> flush t
+                      >> sleep t 10
                       >> oglSDraw xs
     _              -> oglSDraw xs
-  oglSDraw [] = putStrLn "Done!"
+  oglSDraw [] = putStrLn "Done!" >> sleep t 10
   in do
      penup t
-     shape t "turtle"
+     shape t "horse"
      shapesize t 2 2
      oglSDraw ls
 
@@ -263,12 +276,12 @@ mainGlSub :: LSysCompSet -> String -> IO ()
 mainGlSub pr f = do
   f <- openField
   t <- newTurtle f
-  forkIO $ oglDraw t pr (cleanSubSeq $ buildIter pr)
-  threadDelay 5000000
+  onkeypress f $ return . (/= 'q')
+  oglDraw t pr $ cleanSubSeq $ buildIter pr
+  threadDelay 10000000
   closeField f
 
 
--- print iter should change for OpenGL IO ()
 main :: IO ()
 main = do
   [f] <- getArgs
@@ -276,5 +289,4 @@ main = do
   case parseLSysFile prg of
     Left err -> print err
     Right pr -> putStrLn (show pr) >> mainGlSub pr f
-
 

@@ -2,7 +2,6 @@
 lar 20
 ang 60
 axi A
-A:A+ZF++ZF-FA-FAFA-ZF+
-Z:-FA+ZFZF++ZF+FA-FA-A
+A:A+ZF++ZF-FA--FAFA-ZF+
+Z:-FA+ZFZF++ZF+FA--FA-A
 iter 2
-
