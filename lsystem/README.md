@@ -12,3 +12,14 @@ el primer problema planteado:
 
 ![Resultado Primer Problema](https://github.com/dmw/dmw-programando-org/raw/master/lsystem/l-system-and-turtle-graphics.png)
 
+Que se encuentra en el archivo:
+
+[input-1.lsys](https://github.com/dmw/dmw-programando-org/raw/master/lsystem/input-1.lsys)
+
+El segundo problema esta en el archivo:
+
+[input-2.lsys](https://github.com/dmw/dmw-programando-org/raw/master/lsystem/input-2.lsys)
+
+Y el resultado esta aca:
+
+

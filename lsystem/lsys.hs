@@ -25,8 +25,7 @@ import System.Random
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Numbers
 import Text.Printf ()
-
-
+import Text.XML.YJSVG
 
 data LSLarArg = LSLarArg Double deriving (Eq, Show)
 
@@ -233,33 +232,33 @@ cleanSubSeq = filter notSubSeq
 oglDraw :: Turtle -> LSysCompSet -> [LSLSysSeq] -> IO ()
 oglDraw t ss ls = let
   oglSDraw (x : xs) = case x of
-    LSRotateLeft   -> (left t $ readAngArg $ lAng ss)
+    LSRotateLeft   -> left t (readAngArg $ lAng ss)
                       >> flush t
                       >> sleep t 10
                       >> oglSDraw xs
-    LSRotateRight  -> (right t $ readAngArg $ lAng ss)
+    LSRotateRight  -> right t (readAngArg $ lAng ss)
                       >> flush t
                       >> sleep t 10
                       >> oglSDraw xs
     LSMoveForwardT -> pendown t
-                      >> (forward t $ readLarArg $ lLar ss)
+                      >> forward t (readLarArg $ lLar ss)
                       >> penup t
                       >> flush t
                       >> sleep t 10
                       >> oglSDraw xs
     LSMoveForward  -> penup t
-                      >> (forward t $ readLarArg $ lLar ss)
+                      >> forward t (readLarArg $ lLar ss)
                       >> flush t
                       >> sleep t 10
                       >> oglSDraw xs
     LSMoveBackT    -> pendown t
-                      >> (backward t $ readLarArg $ lLar ss)
+                      >> backward t (readLarArg $ lLar ss)
                       >> penup t
                       >> flush t
                       >> sleep t 10
                       >> oglSDraw xs
     LSMoveBack     -> penup t
-                      >> (backward t $ readLarArg $ lLar ss)
+                      >> backward t (readLarArg $ lLar ss)
                       >> flush t
                       >> sleep t 10
                       >> oglSDraw xs
@@ -267,19 +266,24 @@ oglDraw t ss ls = let
   oglSDraw [] = putStrLn "Done!" >> sleep t 10
   in do
      penup t
-     shape t "horse"
+     shape t "turtle"
      shapesize t 2 2
      oglSDraw ls
 
 
 mainGlSub :: LSysCompSet -> String -> IO ()
 mainGlSub pr f = do
-  f <- openField
-  t <- newTurtle f
-  onkeypress f $ return . (/= 'q')
-  oglDraw t pr $ cleanSubSeq $ buildIter pr
-  threadDelay 10000000
-  closeField f
+  fld <- openField
+  tur <- newTurtle fld
+  onkeypress fld $ return . (/= 'q')
+  oglDraw tur pr $ cleanSubSeq $ buildIter pr
+  saveSVG tur f
+  threadDelay 5000000
+  closeField fld
+
+
+saveSVG :: Turtle -> String -> IO ()
+saveSVG t i = getSVG t >>= writeFile (i ++ ".svg") . showSVG 600 600
 
 
 main :: IO ()
@@ -288,5 +292,4 @@ main = do
   prg <- readFile f
   case parseLSysFile prg of
     Left err -> print err
-    Right pr -> putStrLn (show pr) >> mainGlSub pr f
-
+    Right pr -> mainGlSub pr f
