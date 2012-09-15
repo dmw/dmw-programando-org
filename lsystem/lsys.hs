@@ -234,41 +234,35 @@ oglDraw t ss ls = let
   oglSDraw (x : xs) = case x of
     LSRotateLeft   -> left t (readAngArg $ lAng ss)
                       >> flush t
-                      >> sleep t 10
                       >> oglSDraw xs
     LSRotateRight  -> right t (readAngArg $ lAng ss)
                       >> flush t
-                      >> sleep t 10
                       >> oglSDraw xs
     LSMoveForwardT -> pendown t
                       >> forward t (readLarArg $ lLar ss)
                       >> penup t
                       >> flush t
-                      >> sleep t 10
                       >> oglSDraw xs
     LSMoveForward  -> penup t
                       >> forward t (readLarArg $ lLar ss)
                       >> flush t
-                      >> sleep t 10
                       >> oglSDraw xs
     LSMoveBackT    -> pendown t
                       >> backward t (readLarArg $ lLar ss)
                       >> penup t
                       >> flush t
-                      >> sleep t 10
                       >> oglSDraw xs
     LSMoveBack     -> penup t
                       >> backward t (readLarArg $ lLar ss)
                       >> flush t
-                      >> sleep t 10
                       >> oglSDraw xs
     _              -> oglSDraw xs
-  oglSDraw [] = putStrLn "Done!" >> sleep t 10
-  in do
-     penup t
-     shape t "turtle"
-     shapesize t 2 2
-     oglSDraw ls
+  oglSDraw [] = putStrLn "Done!"
+  in penup t
+     >> left t 90
+     >> shape t "turtle"
+     >> shapesize t 2 2
+     >> oglSDraw ls
 
 
 mainGlSub :: LSysCompSet -> String -> IO ()
@@ -278,7 +272,6 @@ mainGlSub pr f = do
   onkeypress fld $ return . (/= 'q')
   oglDraw tur pr $ cleanSubSeq $ buildIter pr
   saveSVG tur f
-  threadDelay 5000000
   closeField fld
 
 
@@ -293,3 +286,4 @@ main = do
   case parseLSysFile prg of
     Left err -> print err
     Right pr -> mainGlSub pr f
+

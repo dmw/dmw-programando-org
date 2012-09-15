@@ -10,7 +10,7 @@ siguiente post:
 Y como resultado tenemos la siguiente imagen para
 el primer problema planteado:
 
-![Resultado Primer Problema](https://github.com/dmw/dmw-programando-org/raw/master/lsystem/l-system-and-turtle-graphics.png)
+![Resultado Primer Problema](https://github.com/dmw/dmw-programando-org/raw/master/lsystem/input-1.lsys.png)
 
 Que se encuentra en el archivo:
 
@@ -22,4 +22,13 @@ El segundo problema esta en el archivo:
 
 Y el resultado esta aca:
 
+![Resultado Segundo Problema](https://github.com/dmw/dmw-programando-org/raw/master/lsystem/input-2.lsys.png)
+
+El tercer problema esta en el archivo:
+
+[input-2.lsys](https://github.com/dmw/dmw-programando-org/raw/master/lsystem/input-3.lsys)
+
+Y el resultado esta aca:
+
+![Resultado Tercer Problema](https://github.com/dmw/dmw-programando-org/raw/master/lsystem/input-3.lsys.png)
 
