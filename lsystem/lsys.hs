@@ -2,30 +2,17 @@
 module Main (main) where
 
 
-
 import Graphics.X11.Turtle
 
-import Control.Monad
-import Control.Concurrent
-
-import qualified Data.List.Utils as L
 import qualified Data.Map as M
 
-import Data.Function
-import Data.List
-import Data.Maybe ()
-import Data.Ord
-import Data.String.Utils
-
 import System.Environment
-import System.IO
-import System.Posix.Temp
-import System.Random
 
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Numbers
 import Text.Printf ()
 import Text.XML.YJSVG
+
 
 data LSLarArg = LSLarArg Double deriving (Eq, Show)
 
@@ -42,6 +29,8 @@ data LSLSysSeq = LSRotateLeft
                  | LSMoveForward
                  | LSMoveBackT
                  | LSMoveBack
+                 | LSPushStack
+                 | LSPopStack
                  | LSSubSeq Char
                    deriving (Eq)
 
@@ -63,12 +52,14 @@ data LSysCompSet = LSysCompSet {
 
 instance Show LSLSysSeq where
   show a = case a of
-                LSRotateLeft     -> " Izq "
-                LSRotateRight    -> " Der "
-                LSMoveForwardT   -> " AvaT "
-                LSMoveForward    -> " Ava "
-                LSMoveBackT      -> " RetT "
-                LSMoveBack       -> " Ret "
+                LSRotateLeft     -> " + "
+                LSRotateRight    -> " - "
+                LSMoveForwardT   -> " F "
+                LSMoveForward    -> " f "
+                LSMoveBackT      -> " B "
+                LSMoveBack       -> " b "
+                LSPushStack      -> " [ "
+                LSPopStack       -> " ] "
                 LSSubSeq n       -> " :" ++ [n] ++ " "
 
 
@@ -110,27 +101,27 @@ parLsAxi :: Parser LSAxiArg
 parLsAxi = do
   _ <- string "axi"
   _ <- space
-  x <- oneOf $ ['A' .. 'Z'] ++ ['a' .. 'z']
+  x <- oneOf $ ['A' .. 'Z'] ++ ['a' .. 'z'] ++ ['0' .. '9']
   _ <- parEol
   return $ LSAxiArg (x :: Char)
 
 
 parLsSysSeq :: Parser LSLSysSeq
 parLsSysSeq = do
-  i <- oneOf $ ['A' .. 'Z'] ++ ['a' .. 'z'] ++ "+-"
+  i <- oneOf $ ['A' .. 'Z'] ++ ['a' .. 'z'] ++ ['0' .. '9'] ++ "+-[]"
   case i of
        '-' -> return LSRotateRight
        '+' -> return LSRotateLeft
        'f' -> return LSMoveForward
-       'F' -> return LSMoveForwardT
        'b' -> return LSMoveBack
-       'B' -> return LSMoveBackT
+       '[' -> return LSPushStack
+       ']' -> return LSPopStack
        _   -> return $ LSSubSeq i
 
 
 parLSysComp :: Parser LSLSysComp
 parLSysComp = do
-  i <- oneOf "ACDEGHIJKLMNOPQRSTUVWXYZ"
+  i <- oneOf "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
   _ <- char ':'
   s <- many parLsSysSeq
   _ <- parEol
@@ -184,7 +175,7 @@ findRootLSSeq ls = let
 
 makeLSMaps :: LSysCompSet -> M.Map Char [LSLSysSeq]
 makeLSMaps ls = let
-  mp = M.empty
+  mp = M.insert 'B' [LSSubSeq 'B'] $ M.insert 'F' [LSSubSeq 'F'] M.empty
   runSeqs (r : rs) m = let
     ks = cSaxi r
     lv = cSseq r
@@ -193,6 +184,12 @@ makeLSMaps ls = let
   runSeqs [] m = m
   lxs = lSeqI ls
   in runSeqs lxs mp
+
+
+remapSubSeq :: LSLSysSeq -> LSLSysSeq
+remapSubSeq (LSSubSeq 'B') = LSMoveBackT
+remapSubSeq (LSSubSeq 'F') = LSMoveForwardT
+remapSubSeq n = n
 
 
 isSubSeq :: LSLSysSeq -> Bool
@@ -215,14 +212,14 @@ buildIter ls = let
   mp = makeLSMaps ls
   ms = lSeqI ls
   ra = readAxiArg $ lAxi ls
-  it = fromIntegral $ lIter ls
+  it = fromIntegral (lIter ls) - 1
   mkFinSeq cn (x : xs) am = case x of
     (LSSubSeq n) -> mkFinSeq cn xs $ am ++ (mp M.! n)
     _            -> mkFinSeq cn xs $ am ++ [x]
   mkFinSeq cn [] am = if cn < it
                          then mkFinSeq (cn + 1) am []
                       else am
-  in mkFinSeq 0 (mp M.! ra) []
+  in mkFinSeq 1 (mp M.! ra) []
 
 
 cleanSubSeq :: [LSLSysSeq] -> [LSLSysSeq]
@@ -231,38 +228,53 @@ cleanSubSeq = filter notSubSeq
 
 oglDraw :: Turtle -> LSysCompSet -> [LSLSysSeq] -> IO ()
 oglDraw t ss ls = let
-  oglSDraw (x : xs) = case x of
+  ems :: [(Double, Double, Double)]
+  ems = []
+  oglSDraw :: [LSLSysSeq]
+              -> [(Double, Double, Double)]
+              -> IO ()
+  oglSDraw (x : xs) a = case x of
     LSRotateLeft   -> left t (readAngArg $ lAng ss)
                       >> flush t
-                      >> oglSDraw xs
+                      >> oglSDraw xs a
     LSRotateRight  -> right t (readAngArg $ lAng ss)
                       >> flush t
-                      >> oglSDraw xs
+                      >> oglSDraw xs a
     LSMoveForwardT -> pendown t
                       >> forward t (readLarArg $ lLar ss)
                       >> penup t
                       >> flush t
-                      >> oglSDraw xs
+                      >> oglSDraw xs a
     LSMoveForward  -> penup t
                       >> forward t (readLarArg $ lLar ss)
                       >> flush t
-                      >> oglSDraw xs
+                      >> oglSDraw xs a
     LSMoveBackT    -> pendown t
                       >> backward t (readLarArg $ lLar ss)
                       >> penup t
                       >> flush t
-                      >> oglSDraw xs
+                      >> oglSDraw xs a
     LSMoveBack     -> penup t
                       >> backward t (readLarArg $ lLar ss)
                       >> flush t
-                      >> oglSDraw xs
-    _              -> oglSDraw xs
-  oglSDraw [] = putStrLn "Done!"
+                      >> oglSDraw xs a
+    LSPushStack    -> do
+                      xt <- xcor t
+                      yt <- ycor t
+                      ht <- heading t
+                      oglSDraw xs ((xt, yt, ht) : a)
+    LSPopStack     -> let ((nx, ny, nh) : xxs) = a
+                      in penup t
+                         >> goto t nx ny
+                         >> setheading t nh
+                         >> oglSDraw xs xxs
+    _              -> oglSDraw xs a
+  oglSDraw [] a = putStrLn "Done!"
   in penup t
      >> left t 90
      >> shape t "turtle"
      >> shapesize t 2 2
-     >> oglSDraw ls
+     >> oglSDraw ls ems
 
 
 mainGlSub :: LSysCompSet -> String -> IO ()
@@ -270,7 +282,10 @@ mainGlSub pr f = do
   fld <- openField
   tur <- newTurtle fld
   onkeypress fld $ return . (/= 'q')
-  oglDraw tur pr $ cleanSubSeq $ buildIter pr
+  oglDraw tur pr
+    $ cleanSubSeq
+    $ fmap remapSubSeq
+    $ buildIter pr
   saveSVG tur f
   closeField fld
 
@@ -286,4 +301,3 @@ main = do
   case parseLSysFile prg of
     Left err -> print err
     Right pr -> mainGlSub pr f
-

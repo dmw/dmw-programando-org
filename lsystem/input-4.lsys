@@ -1,0 +1,11 @@
+
+lar 50
+ang 36.0
+axi M
+M:[O]++[O]++[O]++[O]++[O]
+N:PF++QF----OF[-PF----NF]++
+O:+PF--QF[---NF--OF]+
+P:-NF++OF[+++PF++QF]-
+Q:--PF++++NF[+QF++++OF]--OF
+iter 3
+

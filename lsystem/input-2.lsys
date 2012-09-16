@@ -1,6 +1,8 @@
 
-lar 30
-ang 30
-axi A
-A:ff--F-FbA
-iter 6
+lar 20
+ang 60
+axi X
+F:F
+X:[-F+F[Y]+F][+F-F[X]-F]
+Y:[-F+F[Y]+F][+F-F-F]
+iter 4
