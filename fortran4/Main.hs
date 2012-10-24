@@ -45,7 +45,7 @@ progOptions =
     "input file B"
   , Option "x" ["proc"]
     (ReqArg (\ x o -> return o { procTypeFG = x }) "PROC_G")
-    "processing type file"
+    "processing type file (supported: x11, print, save)"
   , Option "s" ["select"]
     (ReqArg (\ x o -> return o { procTypeSL = x }) "PROC_S")
     "processing selection file"
