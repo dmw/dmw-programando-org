@@ -75,12 +75,12 @@ Resultados
 
 Que se encuentra en el archivo:
 
-[example1.f90](https://github.com/dmw/dmw-programando-org/raw/master/fortran4/example1.f90)
+[example1.f90](https://github.com/dmw/dmw-programando-org/blob/master/fortran4/example1.f90)
 
 
 ![Resultado Segundo Ejemplo](https://github.com/dmw/dmw-programando-org/raw/master/fortran4/example2.f90.png)
 
 Que se encuentra en el archivo:
 
-[example2.f90](https://github.com/dmw/dmw-programando-org/raw/master/fortran4/example2.f90)
+[example2.f90](https://github.com/dmw/dmw-programando-org/blob/master/fortran4/example2.f90)
 
