@@ -1,4 +1,5 @@
 
+
 module FortranParser
     (
      FPConst (..)
@@ -21,13 +22,14 @@ module FortranParser
 
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Numbers
+import Text.Printf
 
 
 data FPConst = FPConstInteger Integer
              | FPConstDouble Double
              | FPConstString String
              | FPConstVariable String
-               deriving (Eq, Ord, Show)
+               deriving (Eq, Ord)
 
 
 data FPCmpOp = FPCondEq
@@ -35,7 +37,7 @@ data FPCmpOp = FPCondEq
                | FPCondGt
                | FPCondLe
                | FPCondGe
-                 deriving (Eq, Ord, Show)
+                 deriving (Eq, Ord)
 
 
 data FPAriOp = FPSumOp
@@ -43,47 +45,47 @@ data FPAriOp = FPSumOp
              | FPMulOp
              | FPDivOp
              | FPExpOp
-               deriving (Eq, Ord, Show)
+               deriving (Eq, Ord)
 
 
 data FPGoto = FPGoto {
       labelName      :: Integer
       , currentLabel :: Integer
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord)
 
 
-data FPStop = FPStop deriving (Eq, Ord, Show)
+data FPStop = FPStop deriving (Eq, Ord)
 
 
 data FPRead = FPRead {
       varCount :: Int
     , varSpec  :: Integer
     , varNames :: [String]
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord)
 
 
 data FPBoolExpr = FPCondC FPCmpOp FPConst FPConst
                 | FPCondR FPCmpOp FPConst FPBoolExpr
                 | FPCondL FPCmpOp FPBoolExpr FPConst
-                  deriving (Eq, Ord, Show)
+                  deriving (Eq, Ord)
 
 
 data FPArithExpr = FPOperC FPAriOp FPConst FPConst
                  | FPOperR FPAriOp FPConst FPArithExpr
                  | FPOperL FPAriOp FPArithExpr FPConst
-                   deriving (Eq, Ord, Show)
+                   deriving (Eq, Ord)
 
 
 data FPCommonExpr = FPExprA FPArithExpr
                   | FPExprB FPBoolExpr
                   | FPExprC FPConst
-                    deriving (Eq, Ord, Show)
+                    deriving (Eq, Ord)
 
 
 data FPAssign = FPAssign {
       varName  :: String
     , varValue :: FPCommonExpr
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord)
 
 
 data FPCommonStm = FPGotoStm FPGoto
@@ -93,19 +95,19 @@ data FPCommonStm = FPGotoStm FPGoto
                  | FPRdStm FPRead
                  | FPCommentStm
                  | FPStopStm FPStop
-                   deriving (Eq, Ord, Show)
+                   deriving (Eq, Ord)
 
 
 data FPIfNStm = FPIfNStm {
       boolExpr :: FPBoolExpr
     , stmList  :: [FPCommonStm]
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord)
 
 
 data FPLabelStm = FPLabelStm {
       labelStm   :: Integer
     , labeledStm :: [FPCommonStm]
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord)
 
 
 data FPProgram = FPProgram {
@@ -399,6 +401,81 @@ fparProgram = do
 
 parseF4Program :: String -> Either ParseError FPProgram
 parseF4Program = parse fparProgram "[Error]"
+
+
+instance Show FPCommonStm where
+    show (FPGotoStm x)   = printf "goto: %d -> %d" (labelName x) (currentLabel x)
+    show (FPAssignStm x) = printf "set: %s <- %s" (varName x) (show $ varValue x)
+    show (FPIfStm x)     = printf "if (%s)" (show $ boolExpr x)
+    show (FPLblStm x)    = printf "label: %d" (labelStm x)
+    show (FPRdStm x)     = printf "read: %d, vars: %s" (varSpec x) (show $ varNames x)
+    show (FPStopStm _)   = printf "stop"
+    show (FPCommentStm)  = printf "comment"
+
+
+instance Show FPBoolExpr where
+    show (FPCondC o a b) = printf "%s %s %s" (show a) (show o) (show b)
+    show (FPCondR o a b) = printf "%s %s (%s)" (show a) (show o) (show b)
+    show (FPCondL o a b) = printf "(%s) %s %s" (show a) (show o) (show b)
+
+
+instance Show FPArithExpr where
+    show (FPOperC o a b) = printf "%s %s %s" (show a) (show o) (show b)
+    show (FPOperR o a b) = printf "%s %s (%s)" (show a) (show o) (show b)
+    show (FPOperL o a b) = printf "(%s) %s %s" (show a) (show o) (show b)
+
+
+instance Show FPCmpOp where
+    show FPCondEq = "=="
+    show FPCondLt = "<"
+    show FPCondGt = ">"
+    show FPCondLe = "<="
+    show FPCondGe = ">="
+
+
+instance Show FPAriOp where
+    show FPSumOp = "+"
+    show FPSubOp = "-"
+    show FPMulOp = "*"
+    show FPDivOp = "/"
+    show FPExpOp = "^"
+
+
+instance Show FPConst where
+    show (FPConstInteger x)  = show x
+    show (FPConstDouble x)   = show x
+    show (FPConstString x)   = printf "string: \"%s\"" x
+    show (FPConstVariable x) = printf "var: %s" x
+
+
+instance Show FPCommonExpr where
+    show (FPExprA x) = show x
+    show (FPExprB x) = show x
+    show (FPExprC x) = show x
+
+
+instance Show FPAssign where
+    show x = printf "%s <- %s" (varName x) (show $ varValue x)
+
+
+instance Show FPRead where
+    show x = printf "read %s; vars: %s" (show $ varSpec x) (show $ varNames x)
+
+
+instance Show FPGoto where
+    show x = printf "goto: %d -> %d" (show $ labelName x) (show $ currentLabel x)
+
+
+instance Show FPStop where
+    show _ = "stop"
+
+
+instance Show FPIfNStm where
+    show x = printf "if (%s)" (show $ boolExpr x)
+
+
+instance Show FPLabelStm where
+    show x = printf "label: %s" (show $ labelStm x)
 
 
 -- end module

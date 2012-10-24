@@ -43,14 +43,7 @@ emptyGrData = FortranGrData {
 
 
 getNodeLabeled :: Int -> FP.FPCommonStm -> LNode String
-getNodeLabeled y m = case m of
-      (FP.FPGotoStm x)    -> (y, printf "goto: %d -> %d" (FP.currentLabel x) (FP.labelName x))
-      (FP.FPAssignStm x)  -> (y, printf "%s = n" (FP.varName x))
-      (FP.FPRdStm x)      -> (y, printf "spec: %d, vars: %s" (FP.varSpec x) (show $ FP.varNames x))
-      (FP.FPCommentStm)   -> (y, printf "comment")
-      (FP.FPStopStm _)    -> (y, printf "stop")
-      (FP.FPLblStm x)     -> (y, printf "label: %d" (FP.labelStm x))
-      (FP.FPIfStm _)      -> (y, printf "if expr")
+getNodeLabeled y m = (y, show m)
 
 
 getEdgeLabeled :: Int -> Int -> LEdge String
