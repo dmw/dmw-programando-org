@@ -54,11 +54,11 @@ Para obtener ayuda del comando se debe ejectura con el flag **--help**
 
 ```shell
 
-07:43 [dmw@scada:2 fortran4]$ ./fortran4 --help
+08:10 [dmw@scada:7 fortran4]$ ./fortran4 --help
 fortran4
   -a FILE_A  --input_a=FILE_A  input file A
   -b FILE_B  --input_b=FILE_B  input file B
-  -x PROC_G  --proc=PROC_G     processing type file
+  -x PROC_G  --proc=PROC_G     processing type file (supported: x11, print, save)
   -s PROC_S  --select=PROC_S   processing selection file
   -v         --verbose         verbose output
   -V         --version         displays program version
@@ -70,17 +70,20 @@ fortran4
 Resultados
 ---
 
+**Resultado para example1.f90**
 
-![Resultado Primer Ejemplo](https://github.com/dmw/dmw-programando-org/raw/master/fortran4/example1.f90.png)
-
-Que se encuentra en el archivo:
+Se encuentra en el archivo:
 
 [example1.f90](https://github.com/dmw/dmw-programando-org/blob/master/fortran4/example1.f90)
 
+![Resultado Primer Ejemplo](https://github.com/dmw/dmw-programando-org/raw/master/fortran4/example1.f90.png)
 
-![Resultado Segundo Ejemplo](https://github.com/dmw/dmw-programando-org/raw/master/fortran4/example2.f90.png)
 
-Que se encuentra en el archivo:
+
+**Resultado para example2.f90**
+
+Se encuentra en el archivo:
 
 [example2.f90](https://github.com/dmw/dmw-programando-org/blob/master/fortran4/example2.f90)
 
+![Resultado Segundo Ejemplo](https://github.com/dmw/dmw-programando-org/raw/master/fortran4/example2.f90.png)
