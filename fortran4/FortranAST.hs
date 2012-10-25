@@ -16,8 +16,6 @@ import Data.Graph.Inductive.Graph ()
 import Data.GraphViz
 import Data.GraphViz.Attributes ()
 import Data.GraphViz.Attributes.Complete
-import Data.GraphViz.Exception
-import Data.List.Utils
 import Text.Printf
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Numbers ()
@@ -26,7 +24,7 @@ import qualified FortranParser as FP
 
 
 data FortranGrData = FortranGrData {
-      fortranNodes :: [LNode String]
+      fortranNodes :: [LNode FP.FPCommonStm]
     , fortranEdges :: [LEdge String]
     , currentIndex :: Int
     , currentParen :: [Int]
@@ -42,12 +40,12 @@ emptyGrData = FortranGrData {
               }
 
 
-getNodeLabeled :: Int -> FP.FPCommonStm -> LNode String
-getNodeLabeled y m = (y, show m)
+getNodeLabeled :: Int -> FP.FPCommonStm -> LNode FP.FPCommonStm
+getNodeLabeled y m = (y, m)
 
 
 getEdgeLabeled :: Int -> Int -> LEdge String
-getEdgeLabeled y y' = (y, y', printf "%d -> %d" y y')
+getEdgeLabeled y y' = (y, y', printf "%d &rarr; %d" y y')
 
 
 getRootFPNode :: FP.FPProgram -> FortranGrData -> FortranGrData
@@ -59,7 +57,7 @@ getRootFPNode p g = g {
                     }
 
 
-appendNode' :: FortranGrData -> LNode String -> LEdge String -> Int -> FortranGrData
+appendNode' :: FortranGrData -> LNode FP.FPCommonStm -> LEdge String -> Int -> FortranGrData
 appendNode' r cn en nc = let
     ps = fortranNodes r ++ [cn]
     se = fortranEdges r ++ [en]
@@ -152,16 +150,16 @@ plotFortranAST :: Either ParseError FP.FPProgram -> IO ()
 plotFortranAST x = case x of
                      Left err -> print err
                      Right pr -> let gr = getFortranAST pr
-                                     ng :: Gr String String
+                                     ng :: Gr FP.FPCommonStm String
                                      ng = mkGraph (fortranNodes gr) (fortranEdges gr)
-                                 in print gr >> previewGraph' ng
+                                 in print ng >> previewGraph' ng
 
 
 printFortranAST :: Either ParseError FP.FPProgram -> IO ()
 printFortranAST x = case x of
                       Left err -> print err
                       Right pr -> let gr = getFortranAST pr
-                                      ng :: Gr String String
+                                      ng :: Gr FP.FPCommonStm String
                                       ng = mkGraph (fortranNodes gr) (fortranEdges gr)
                                   in print ng
 
@@ -169,13 +167,13 @@ printFortranAST x = case x of
 saveFortranAST :: FilePath -> Either ParseError FP.FPProgram -> IO ()
 saveFortranAST fn x = case x of
                         Right pr -> let gr = getFortranAST pr
-                                        ng :: Gr String String
+                                        ng :: Gr FP.FPCommonStm String
                                         ng = mkGraph (fortranNodes gr) (fortranEdges gr)
                                     in print ng
                                        >> graphToDotPng fn ng
                                        >> putStrLn "/// Saved..."
                         _        -> putStrLn "/// Error"
-    where graphToDotPng :: FilePath -> Gr String String -> IO FilePath
+    where graphToDotPng :: FilePath -> Gr FP.FPCommonStm String -> IO FilePath
           graphToDotPng fpre g = runGraphviz (graphToDot params g) Png fpre
           params = nonClusteredParams { fmtNode = \ (_,l) -> [toLabel l]
                                       , fmtEdge = \ (_, _, l) -> [toLabel l]

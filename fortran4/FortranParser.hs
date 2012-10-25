@@ -23,6 +23,8 @@ module FortranParser
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Numbers
 import Text.Printf
+import Data.GraphViz.Attributes
+import qualified Data.Text.Lazy as T
 
 
 data FPConst = FPConstInteger Integer
@@ -404,8 +406,8 @@ parseF4Program = parse fparProgram "[Error]"
 
 
 instance Show FPCommonStm where
-    show (FPGotoStm x)   = printf "goto: %d -> %d" (labelName x) (currentLabel x)
-    show (FPAssignStm x) = printf "set: %s <- %s" (varName x) (show $ varValue x)
+    show (FPGotoStm x)   = printf "goto: %d &rarr; %d" (currentLabel x) (labelName x)
+    show (FPAssignStm x) = printf "set: %s &larr; %s" (varName x) (show $ varValue x)
     show (FPIfStm x)     = printf "if (%s)" (show $ boolExpr x)
     show (FPLblStm x)    = printf "label: %d" (labelStm x)
     show (FPRdStm x)     = printf "read: %d, vars: %s" (varSpec x) (show $ varNames x)
@@ -455,15 +457,15 @@ instance Show FPCommonExpr where
 
 
 instance Show FPAssign where
-    show x = printf "%s <- %s" (varName x) (show $ varValue x)
+    show x = printf "%s &larr; %s" (varName x) (show $ varValue x)
 
 
 instance Show FPRead where
-    show x = printf "read %s; vars: %s" (show $ varSpec x) (show $ varNames x)
+    show x = printf "read %s; vars: %s XXX" (show $ varSpec x) (show $ varNames x)
 
 
 instance Show FPGoto where
-    show x = printf "goto: %d -> %d" (show $ labelName x) (show $ currentLabel x)
+    show x = printf "goto: %d &rarr; %d" (show $ currentLabel x) (show $ labelName x)
 
 
 instance Show FPStop where
@@ -476,6 +478,10 @@ instance Show FPIfNStm where
 
 instance Show FPLabelStm where
     show x = printf "label: %s" (show $ labelStm x)
+
+
+instance Labellable FPCommonStm where
+    toLabelValue = toLabelValue . T.pack . show
 
 
 -- end module
